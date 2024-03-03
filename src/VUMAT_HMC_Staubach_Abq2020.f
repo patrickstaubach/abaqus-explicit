@@ -187,8 +187,7 @@ c
 !xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 
-        if (isfirstinc == 1 .or. coords(3)<85.0 
-     &   .or. coords(1)<-3.0 .or. coords(2)<-3.0) then
+        if (isfirstinc == 1) then
            
            mat_props(1) = 8000.0d0
            mat_props(2) = 0.3d0
