@@ -1,6 +1,6 @@
 # Hydro-mechanically coupled explicit Vumat for Abaqus using the hypoplastic model with intergranular strain extension and considering effective contact stresses
 
-This set of fortran files contains the hydro-mechanically coupled explicit Vumat for Abaqus using the hypoplastic model with intergranular strain extension. The implementations are according to the following works
+This set of fortran files contains the hydro-mechanically coupled explicit Vumat for Abaqus using the hypoplastic model with intergranular strain extension. The implementations are according to the following papers:
    -  Hydro-mechanically coupling according to the papers *Vibratory pile driving in water-saturated sand: Back-analysis of model tests using a hydro-mechanically coupled CEL method* [See here](https://doi.org/10.1016/j.sandf.2020.11.005) and *Impact of the installation on the long-term cyclic behaviour of piles in sand: a numerical study* [See here](https://doi.org/10.1016/j.soildyn.2020.106223) 
    -  Consideration of effective contact stresses for calculation of friction according to *Hydro-mechanically coupled CEL analyses with effective contact stresses* [See here](https://doi.org/10.1002/nag.3725) 
    -  Incorporation of effects of cavitation according to *Monopile installation in clay and subsequent response to millions of lateral load cycles* [See here](https://doi.org/10.1016/j.compgeo.2022.105221)
