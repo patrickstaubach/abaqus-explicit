@@ -8,13 +8,13 @@
 !You should have received a copy of the GNU General Public License along with VUMAT_HMC_Staubach_Abq2020. If not, see <https://www.gnu.org/licenses/>. 
 !=======================================================================================================
 !
-! SUBROUTINE: VUFIELD
+! SUBROUTINE: VUSDFLD
 !
 !> @author Patrick Staubach, patrick.staubach@yahoo.de
 !          Bauhaus University Weimar, Ruhr-University Bochum
 !
 ! DESCRIPTION:
-!> @brief Contains the VUFIELD routine used to calculate effective interface friction according to the paper
+!> @brief Contains the VUSDFLD routine used to calculate effective interface friction according to the paper
 !> @brief "Hydro-mechanically coupled CEL analyses with effective contact stresses" International Journal for Numerical and Analytical Methods in Geomechanics 
 !
 ! REVISION HISTORY
