@@ -8,7 +8,9 @@ This set of fortran files contains the hydro-mechanically coupled explicit Vumat
 
 **Please cite these papers if using the subroutines in your research!**
 
-All simulations and benchmarks have been performed with Abaqus 2023 and Intel OneAPI 2023.
+Please see the PDF file for detailed explanations of the routines. 
+
+All simulations and benchmarks have been performed with Abaqus 2023 and Intel OneAPI 2023. Compatibility with other compilers may not be guaranteed!
 
 The routines for the consideration of effective contact stresses only support simulations with up to 6 CPUs.
 
