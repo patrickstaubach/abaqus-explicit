@@ -1,0 +1,158 @@
+*include,input=mesh.inp
+*Amplitude, name=mySinus, definition=USER, variables=0
+**
+*Amplitude, name=rampe, definition=tabular
+0.0d0,0.0d0,2.0d0,1.0d0
+*Amplitude, name=rampe_constact, definition=tabular
+0.0d0,0.0d0,2.0d0,1.0d0,4.0d0,1.0d0,6.0d0,1.0d0
+*Amplitude, name=Sinus1, definition=Periodic
+1, 201.06, 0.,
+0., 0., 1.
+*Amplitude, name=Sinus2, definition=Periodic
+1, 226.2, 0.,
+0., 0., 1.
+**
+** MATERIALS
+** 
+*Material, name=Soil
+*Density
+1.86487d0,
+*Depvar
+36
+*USER DEFINED FIELD
+*User Material, constants=15, unsymm
+ 0.578,     0.37,    4e+06,     0.27,    0.677,    1.054,    1.212,     0.14
+      2.5,      1.2,      2.4,   0.0001,      0.1,       6.,       0.
+*CONDUCTIVITY, TYPE=ISO
+1.00d-4
+*SPECIFIC HEAT
+2.40963060966898e-05
+**Q=0,475836042
+**/2200000
+** /1.864870532
+**1.1598076441519e-07
+**Q=0,475836042
+**/10589
+** /1.864870532
+**2.40963060966898e-05
+*INELASTIC HEAT FRACTION
+1.0
+***********************************************************
+*Material, name=Steel
+*Density
+ 7.8,
+*Elastic
+ 2.1e+08, 0.32
+** 
+***********************************************************
+** INTERACTION PROPERTIES
+** 
+*Surface Interaction, name=IntProp-1
+*Friction,DEPENDENCIES = 1
+ 0.0, , , ,0
+ 0.5, , , ,0.5
+** 
+** INTERACTIONS
+** 
+** Interaction: Int-1
+*Contact, op=NEW
+*Contact Inclusions, ALL EXTERIOR
+*Contact Property Assignment
+ ,  , IntProp-1
+***********************************************************
+** BOUNDARY CONDITIONS
+** 
+*Boundary
+back, 1, 2
+bottom, 3, 3
+bottom,11,11,0.0d0
+left_y, 2, 2
+right_x, 1, 1
+Eulerian_all,1,3
+Eulerian_all,11,11,0.0d0
+_PickedSet10,4,6
+_PickedSet10,1,3
+***********************************************************
+**=========================================================
+***********************************************************
+*INITIAL CONDITIONS,TYPE=STRESS,GEOSTATIC
+Eulerian_all,-0.0d0,0.0d0,-3729.74d0,200.0d0,0.4d0,0.4d0
+*Initial conditions,type=solution
+Eulerian_all,0.7524d0,0,0,-0.0001d0,0,0,0
+0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0
+0,0,0,0
+*INITIAL CONDITIONS,TYPE=FIELD 
+Eulerian_all,0,0
+***********************************************************
+**=========================================================
+***********************************************************
+*Step, name=Geostatic
+*Dynamic TEMPERATURE-DISPLACEMENT,explicit,direct user control
+1.0,1.00
+*Dload
+Eulerian_all, GRAV, 10., 0., 0., 1.
+Pile-1.Set-1, GRAV, 10., 0., 0., 1.
+** 
+*Output, field
+*Node Output
+U,A,V,NT
+*Element Output
+S, SDV,E,EVF,TEMP
+*End Step
+*********************************************************
+*STEP, NAME=Step2
+*Dynamic TEMPERATURE-DISPLACEMENT,explicit,scale factor=1
+,2.00,,0.005
+***************
+*Boundary,OP=new
+bottom,3,3
+bottom,11,11,0.0d0
+left_y,2,2
+right_x,1,1
+back,1,2
+_PickedSet10,4,6
+_PickedSet10,1,2
+nodes_top_2,11,11,0.0d0
+**
+*cload,op=new
+_PickedSet10,3,250
+*field,user
+*field,user, NUMBER =2
+Eulerian_all
+*Output, field,number interval=10
+*Node Output
+U,A,V,COORD,cf,NT
+*Element Output
+S, SDV,E,EVF,coord,TEMP,fv
+*contact output,VARIABLE=ALL
+*End Step
+***********************************************************
+*STEP, NAME=Step3
+*Dynamic TEMPERATURE-DISPLACEMENT,explicit,scale factor=1
+,120.00,,0.005
+*Boundary,OP=new
+bottom,3,3
+bottom,11,11,0.0d0
+left_y,2,2
+right_x,1,1
+back,1,2
+_PickedSet10,4,6
+_PickedSet10,1,2
+nodes_top_2,11,11,0.0d0
+**
+*cload,op=new
+_PickedSet10,3,250
+*cload,amplitude=mySinus,op=new
+_PickedSet10,3,1
+*field,user
+*field,user, NUMBER =2
+Eulerian_all
+*Output, field,number interval=2000
+*Node Output
+U,A,V,COORD,cf,NT
+*Element Output
+S, SDV,E,EVF,coord,TEMP,fv
+*contact output,VARIABLE=ALL
+*End Step
