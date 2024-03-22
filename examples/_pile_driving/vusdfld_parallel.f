@@ -35,8 +35,8 @@ c
 !# =============================================================================
 !# Variables to be edited
 !# =============================================================================
-      pile_radius      = 1.0d0      !! only in the zone 1.4 times the pile radius the field variable is assigned
-      min_coords3      = 11.0d0     !! for z-coords larger than this value the field variable is not assigned, change at end of file if needed!!
+      pile_radius      = 0.5d0      !! only in the zone 1.4 times the pile radius the field variable is assigned
+      min_coords3      = 85.0d0     !! for z-coords lower than this value the field variable is not assigned, change at end of file if needed!!
       pile_center(1:2) = [0.0d0,0.0d0] !! define pile center
 !# =============================================================================
 !# Get processes
@@ -120,6 +120,30 @@ c
           open(unit = myunit, file = 'vusdfld_out6.dat',
      1    status='new', action="write", iostat = ios)
         endif
+      elseif(KPROCESSNUM == 7) then
+        myunit =111
+        inquire(file = 'vusdfld_out7.dat',
+     1   exist=file_exists)
+
+        if(file_exists) then
+          open(unit = myunit, file = 'vusdfld_out7.dat',
+     1    status="old", position="append", action="readwrite", iostat = ios)
+        else
+          open(unit = myunit, file = 'vusdfld_out7.dat',
+     1    status='new', action="write", iostat = ios)
+        endif
+      elseif(KPROCESSNUM == 8) then
+        myunit =112
+        inquire(file = 'vusdfld_out8.dat',
+     1   exist=file_exists)
+
+        if(file_exists) then
+          open(unit = myunit, file = 'vusdfld_out8.dat',
+     1    status="old", position="append", action="readwrite", iostat = ios)
+        else
+          open(unit = myunit, file = 'vusdfld_out8.dat',
+     1    status='new', action="write", iostat = ios)
+        endif
       else
         write(*,*) 'ERROR SUBROUTINE VUFIELD: Not defined for the given number of processes'
       endif
@@ -129,9 +153,8 @@ c
 !# =============================================================================
       do 100 k = 1, nblock
 
-        if(sqrt(coordMp(k,1)**2+ coordMp(k,2)**2) < pile_radius*1.4 .and.
-     1   sqrt(coordMp(k,1)**2+ coordMp(k,2)**2) > pile_radius*0.7 .and.
-     2          coordMp(k,3)<min_coords3) then
+        if(sqrt(coordMp(k,1)**2+ coordMp(k,2)**2) < pile_radius*1.2 .and.
+     1          coordMp(k,3)>min_coords3) then
 
          !! The normal vector has to point inward (multiply with -1)
          normal_vector(1:2) = -(coordMp(k,1:2)-pile_center(1:2))/norm2(coordMp(k,1:2)-pile_center(1:2))

@@ -1,25 +1,3 @@
-!=======================================================================================================
-!This file is part of VUMAT_HMC_Staubach_Abq2020.
-!
-!VUMAT_HMC_Staubach_Abq2020 is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License !as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-!
-!VUMAT_HMC_Staubach_Abq2020 is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied !warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-!
-!You should have received a copy of the GNU General Public License along with VUMAT_HMC_Staubach_Abq2020. If not, see <https://www.gnu.org/licenses/>. 
-!=======================================================================================================
-!
-! SUBROUTINE: VUSDFLD
-!
-!> @author Patrick Staubach, patrick.staubach@yahoo.de
-!          Bauhaus University Weimar, Ruhr-University Bochum
-!
-! DESCRIPTION:
-!> @brief Contains the VUSDFLD routine used to calculate effective interface friction according to the paper
-!> @brief "Hydro-mechanically coupled CEL analyses with effective contact stresses" International Journal for Numerical and Analytical Methods in Geomechanics 
-!
-! REVISION HISTORY
-!> @date 03.03.2024 - Initial version
-!=======================================================================================================
       subroutine vusdfld(
 c Read only variables -
      1   nblock, nstatev, nfieldv, nprops, ndir, nshr,
@@ -140,6 +118,30 @@ c
      1    status="old", position="append", action="readwrite", iostat = ios)
         else
           open(unit = myunit, file = 'vusdfld_out6.dat',
+     1    status='new', action="write", iostat = ios)
+        endif
+      elseif(KPROCESSNUM == 7) then
+        myunit =111
+        inquire(file = 'vusdfld_out7.dat',
+     1   exist=file_exists)
+
+        if(file_exists) then
+          open(unit = myunit, file = 'vusdfld_out7.dat',
+     1    status="old", position="append", action="readwrite", iostat = ios)
+        else
+          open(unit = myunit, file = 'vusdfld_out7.dat',
+     1    status='new', action="write", iostat = ios)
+        endif
+      elseif(KPROCESSNUM == 8) then
+        myunit =112
+        inquire(file = 'vusdfld_out8.dat',
+     1   exist=file_exists)
+
+        if(file_exists) then
+          open(unit = myunit, file = 'vusdfld_out8.dat',
+     1    status="old", position="append", action="readwrite", iostat = ios)
+        else
+          open(unit = myunit, file = 'vusdfld_out8.dat',
      1    status='new', action="write", iostat = ios)
         endif
       else

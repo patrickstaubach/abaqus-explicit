@@ -1,25 +1,5 @@
-!=======================================================================================================
-!This file is part of VUMAT_HMC_Staubach_Abq2020.
-!
-!VUMAT_HMC_Staubach_Abq2020 is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License !as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-!
-!VUMAT_HMC_Staubach_Abq2020 is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied !warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-!
-!You should have received a copy of the GNU General Public License along with VUMAT_HMC_Staubach_Abq2020. If not, see <https://www.gnu.org/licenses/>. 
-!=======================================================================================================
-!
-! SUBROUTINE: VUFIELD
-!
-!> @author Patrick Staubach, patrick.staubach@yahoo.de
-!          Bauhaus University Weimar, Ruhr-University Bochum
-!
-! DESCRIPTION:
-!> @brief Contains the VUFIELD routine used to calculate effective interface friction according to the paper
-!> @brief "Hydro-mechanically coupled CEL analyses with effective contact stresses" International Journal for Numerical and Analytical Methods in Geomechanics 
-!
-! REVISION HISTORY
-!> @date 03.03.2024 - Initial version
-!=======================================================================================================
+
+
       SUBROUTINE VUFIELD(FIELD, NBLOCK, NFIELD, KFIELD, NCOMP,
      1                   KSTEP, JFLAGS, JNODEUID, TIME,
      2                   COORDS, U, V, A)
@@ -87,9 +67,9 @@ C
 !# =============================================================================
 !# Variables to be edited
 !# =============================================================================
-      pile_radius      = 1.0d0     !! only in the zone 1.4 times the pile radius the field variable is assigned
+      pile_radius      = 0.5d0     !! only in the zone 1.4 times the pile radius the field variable is assigned
       frequency_update = 10        !! only in every 10th calculation increment the field variable is updated
-      min_coords3      = 11.0d0    !! for z-coords larger than this value the field variable is not assigned, change at end of file if needed!!
+      min_coords3      = 85.0d0    !! for z-coords lower than this value the field variable is not assigned, change at end of file if needed!!
       bytes_per_line   = 62        !! bytes for one line of the files to be read, Check if subroutine is reading correct number of lines!!
 !# =============================================================================
 !# Get processes
@@ -108,6 +88,10 @@ C
         myunit = 109
       elseif(KPROCESSNUM == 5) then
         myunit = 110
+      elseif(KPROCESSNUM == 6) then
+        myunit = 111
+      elseif(KPROCESSNUM == 7) then
+        myunit = 112
       else
         write(*,*) 'ERROR SUBROUTINE VUFIELD: Not defined for the given number of processes'
       endif
@@ -155,6 +139,20 @@ C
      1    exist=file_exists)
           if(file_exists) then
             open(unit = myunit, file = 'vusdfld_out6.dat',
+     1      status='old', position="append", action="readwrite", iostat = ios)
+            close(myunit, status='delete')
+          endif
+          inquire(file = 'vusdfld_out7.dat',
+     1    exist=file_exists)
+          if(file_exists) then
+            open(unit = myunit, file = 'vusdfld_out7.dat',
+     1      status='old', position="append", action="readwrite", iostat = ios)
+            close(myunit, status='delete')
+          endif
+          inquire(file = 'vusdfld_out8.dat',
+     1    exist=file_exists)
+          if(file_exists) then
+            open(unit = myunit, file = 'vusdfld_out8.dat',
      1      status='old', position="append", action="readwrite", iostat = ios)
             close(myunit, status='delete')
           endif
@@ -206,6 +204,20 @@ C
      1    exist=file_exists)
           if(file_exists) then
             open(unit = myunit, file = 'vusdfld_out6.dat',
+     1      status='old', position="append", action="readwrite", iostat = ios)
+            close(myunit, status='delete')
+          endif
+          inquire(file = 'vusdfld_out7.dat',
+     1    exist=file_exists)
+          if(file_exists) then
+            open(unit = myunit, file = 'vusdfld_out7.dat',
+     1      status='old', position="append", action="readwrite", iostat = ios)
+            close(myunit, status='delete')
+          endif
+            inquire(file = 'vusdfld_out8.dat',
+     1    exist=file_exists)
+          if(file_exists) then
+            open(unit = myunit, file = 'vusdfld_out8.dat',
      1      status='old', position="append", action="readwrite", iostat = ios)
             close(myunit, status='delete')
           endif
@@ -295,7 +307,7 @@ C
         close(myunit)
       endif
 !# =============================================================================
-!# Fifth file from fourth process
+!# Fifth file from fifth process
 !# =============================================================================
       inquire(file = 'vusdfld_out5.dat',
      1exist=file_exists,size=isize)
@@ -311,7 +323,7 @@ C
         close(myunit)
       endif
 !# =============================================================================
-!# Sixth file from fourth process
+!# Sixth file from sixth process
 !# =============================================================================
       inquire(file = 'vusdfld_out6.dat',
      1exist=file_exists,size=isize)
@@ -326,8 +338,40 @@ C
         end do read6
         close(myunit)
       endif
-
-
+!# =============================================================================
+!# Seventh file from seventh process
+!# =============================================================================
+      inquire(file = 'vusdfld_out7.dat',
+     1exist=file_exists,size=isize)
+      nlines = int(isize/bytes_per_line) !! This solution was required because it appears that ios checking if end of file reached does not work with abaqus
+      if(file_exists .and. isize > 0) then
+        open(unit = myunit, file = 'vusdfld_out7.dat',
+     1  status='unknown', action="read", iostat = ios, form="FORMATTED")
+        read7: do ii = 1, nlines
+          read(myunit,*,iostat=ios) coords_field(nline,1:3), field_vusdfld(nline)
+          if(ios < 0) exit read7
+          nline = nline + 1
+        end do read7
+        close(myunit)
+      endif
+      
+!# =============================================================================
+!# Eighth file from eighth process
+!# =============================================================================
+      inquire(file = 'vusdfld_out8.dat',
+     1exist=file_exists,size=isize)
+      nlines = int(isize/bytes_per_line) !! This solution was required because it appears that ios checking if end of file reached does not work with abaqus
+      if(file_exists .and. isize > 0) then
+        open(unit = myunit, file = 'vusdfld_out8.dat',
+     1  status='unknown', action="read", iostat = ios, form="FORMATTED")
+        read8: do ii = 1, nlines
+          read(myunit,*,iostat=ios) coords_field(nline,1:3), field_vusdfld(nline)
+          if(ios < 0) exit read8
+          nline = nline + 1
+        end do read8
+        close(myunit)
+      endif
+      
 !# =============================================================================
 !# Assign field value to nodes using the shortest distance
 !# =============================================================================
@@ -335,8 +379,7 @@ C
       do k = 1, nblock
 
         if(sqrt(COORDS(1,k)**2+ COORDS(2,k)**2) < pile_radius*1.2 .and.
-     1   sqrt(COORDS(1,k)**2+ COORDS(2,k)**2) > pile_radius*0.7 .and.
-     2         COORDS(3,k)<min_coords3) then
+     1         COORDS(3,k)>min_coords3) then
 
           coords_min = 1d6
 
