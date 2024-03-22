@@ -1,11 +1,11 @@
 !=======================================================================================================
-!This file is part of VUMAT_HMC_Staubach_Abq2020.
+!This file is part of VUMAT_HMC_Staubach.
 !
-!VUMAT_HMC_Staubach_Abq2020 is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License !as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+!VUMAT_HMC_Staubach is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License !as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 !
-!VUMAT_HMC_Staubach_Abq2020 is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied !warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+!VUMAT_HMC_Staubach is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied !warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 !
-!You should have received a copy of the GNU General Public License along with VUMAT_HMC_Staubach_Abq2020. If not, see <https://www.gnu.org/licenses/>. 
+!You should have received a copy of the GNU General Public License along with VUMAT_HMC_Staubach. If not, see <https://www.gnu.org/licenses/>. 
 !=======================================================================================================
 !
 ! Module: tools
@@ -20,7 +20,7 @@
 ! REVISION HISTORY
 !> @date 02.02.2021 - Initial version
 !=======================================================================================================
-      module tools   !from A. Niemunis  (KIT Karlsruhe)                                  
+      module tools   ! from A. Niemunis  (KIT Karlsruhe)                                  
       implicit none
 	  save              
       integer :: ixx,jxx

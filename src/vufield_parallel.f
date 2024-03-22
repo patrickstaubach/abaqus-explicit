@@ -1,5 +1,26 @@
-
-
+!=======================================================================================================
+!This file is part of VUMAT_HMC_Staubach.
+!
+!VUMAT_HMC_Staubach is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License !as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+!
+!VUMAT_HMC_Staubach is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied !warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+!
+!You should have received a copy of the GNU General Public License along with VUMAT_HMC_Staubach. If not, see <https://www.gnu.org/licenses/>. 
+!=======================================================================================================
+!
+! SUBROUTINE: VUFIELD
+!
+!> @author Patrick Staubach, patrick.staubach@yahoo.de
+!          Bauhaus University Weimar, Ruhr-University Bochum
+!
+! DESCRIPTION:
+!> @brief Contains the VUFIELD routine used to calculate effective interface friction according to the paper
+!> @brief "Hydro-mechanically coupled CEL analyses with effective contact stresses" https://onlinelibrary.wiley.com/doi/10.1002/nag.3725 International Journal for Numerical and Analytical Methods in Geomechanics 
+!
+! REVISION HISTORY
+!> @date 03.03.2024 - Initial version
+!> @date 22.03.2024 - Support of up to 8 CPUs
+!=======================================================================================================
       SUBROUTINE VUFIELD(FIELD, NBLOCK, NFIELD, KFIELD, NCOMP,
      1                   KSTEP, JFLAGS, JNODEUID, TIME,
      2                   COORDS, U, V, A)

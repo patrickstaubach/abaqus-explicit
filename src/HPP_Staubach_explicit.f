@@ -1,11 +1,11 @@
 !=======================================================================================================
-!This file is part of VUMAT_HMC_Staubach_Abq2020.
+!This file is part of VUMAT_HMC_Staubach.
 !
-!VUMAT_HMC_Staubach_Abq2020 is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License !as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+!VUMAT_HMC_Staubach is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License !as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 !
-!VUMAT_HMC_Staubach_Abq2020 is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied !warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+!VUMAT_HMC_Staubach is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied !warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 !
-!You should have received a copy of the GNU General Public License along with VUMAT_HMC_Staubach_Abq2020. If not, see <https://www.gnu.org/licenses/>. 
+!You should have received a copy of the GNU General Public License along with VUMAT_HMC_Staubach. If not, see <https://www.gnu.org/licenses/>. 
 !=======================================================================================================
 !
 ! SUBROUTINE: HPP_Staubach
@@ -16,6 +16,8 @@
 ! DESCRIPTION:
 !> @brief Contains the hypoplastic constitutive model with the extension of the intergranular strain
 !> @brief Uses an adaptive Newton scheme to evaluate the stress increment and the jacobian
+!> @brief Implementation of the hypoplastic model with intergranular strain extension 
+!> @brief according to https://www.bgu.ruhr-uni-bochum.de/bgu/mam/images/dissertationen/staubach__2022__heft_73_contributions_to_the_numerical_modelling_of_pile_installation_processes_and_high-cyclic_loading_of_soils_mit_db.pdf
 ! REVISION HISTORY
 !> @date 20.05.2018 - Initial version   
 !=======================================================================================================

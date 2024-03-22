@@ -1,3 +1,26 @@
+!=======================================================================================================
+!This file is part of VUMAT_HMC_Staubach.
+!
+!VUMAT_HMC_Staubach is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License !as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+!
+!VUMAT_HMC_Staubach is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied !warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+!
+!You should have received a copy of the GNU General Public License along with VUMAT_HMC_Staubach. If not, see <https://www.gnu.org/licenses/>. 
+!=======================================================================================================
+!
+! SUBROUTINE: VUSDFLD
+!
+!> @author Patrick Staubach, patrick.staubach@yahoo.de
+!          Bauhaus University Weimar, Ruhr-University Bochum
+!
+! DESCRIPTION:
+!> @brief Contains the VUSDFLD routine used to calculate effective interface friction according to the paper
+!> @brief "Hydro-mechanically coupled CEL analyses with effective contact stresses" https://onlinelibrary.wiley.com/doi/10.1002/nag.3725 International Journal for Numerical and Analytical Methods in Geomechanics 
+!
+! REVISION HISTORY
+!> @date 03.03.2024 - Initial version
+!> @date 22.03.2024 - Support of up to 8 CPUs
+!=======================================================================================================
       subroutine vusdfld(
 c Read only variables -
      1   nblock, nstatev, nfieldv, nprops, ndir, nshr,
@@ -35,8 +58,8 @@ c
 !# =============================================================================
 !# Variables to be edited
 !# =============================================================================
-      pile_radius      = 0.5d0      !! only in the zone 1.4 times the pile radius the field variable is assigned
-      min_coords3      = 85.0d0     !! for z-coords lower than this value the field variable is not assigned, change at end of file if needed!!
+      pile_radius      = 1.0d0      !! only in the zone 1.4 times the pile radius the field variable is assigned
+      min_coords3      = 11.0d0     !! for z-coords larger than this value the field variable is not assigned, change at end of file if needed!!
       pile_center(1:2) = [0.0d0,0.0d0] !! define pile center
 !# =============================================================================
 !# Get processes
@@ -153,9 +176,10 @@ c
 !# =============================================================================
       do 100 k = 1, nblock
 
-        if(sqrt(coordMp(k,1)**2+ coordMp(k,2)**2) < pile_radius*1.2 .and.
-     1          coordMp(k,3)>min_coords3) then
-
+        if(sqrt(coordMp(k,1)**2+ coordMp(k,2)**2) < pile_radius*1.4 .and.
+     1   sqrt(coordMp(k,1)**2+ coordMp(k,2)**2) > pile_radius*0.7 .and.
+     2          coordMp(k,3)<min_coords3) then
+     
          !! The normal vector has to point inward (multiply with -1)
          normal_vector(1:2) = -(coordMp(k,1:2)-pile_center(1:2))/norm2(coordMp(k,1:2)-pile_center(1:2))
 

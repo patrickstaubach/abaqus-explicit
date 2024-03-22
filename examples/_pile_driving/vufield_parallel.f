@@ -1,5 +1,26 @@
-
-
+!=======================================================================================================
+!This file is part of VUMAT_HMC_Staubach.
+!
+!VUMAT_HMC_Staubach is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License !as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+!
+!VUMAT_HMC_Staubach is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied !warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+!
+!You should have received a copy of the GNU General Public License along with VUMAT_HMC_Staubach. If not, see <https://www.gnu.org/licenses/>. 
+!=======================================================================================================
+!
+! SUBROUTINE: VUFIELD
+!
+!> @author Patrick Staubach, patrick.staubach@yahoo.de
+!          Bauhaus University Weimar, Ruhr-University Bochum
+!
+! DESCRIPTION:
+!> @brief Contains the VUFIELD routine used to calculate effective interface friction according to the paper
+!> @brief "Hydro-mechanically coupled CEL analyses with effective contact stresses" https://onlinelibrary.wiley.com/doi/10.1002/nag.3725 International Journal for Numerical and Analytical Methods in Geomechanics 
+!
+! REVISION HISTORY
+!> @date 03.03.2024 - Initial version
+!> @date 22.03.2024 - Support of up to 8 CPUs
+!=======================================================================================================
       SUBROUTINE VUFIELD(FIELD, NBLOCK, NFIELD, KFIELD, NCOMP,
      1                   KSTEP, JFLAGS, JNODEUID, TIME,
      2                   COORDS, U, V, A)
@@ -67,9 +88,9 @@ C
 !# =============================================================================
 !# Variables to be edited
 !# =============================================================================
-      pile_radius      = 0.5d0     !! only in the zone 1.4 times the pile radius the field variable is assigned
+      pile_radius      = 1.0d0     !! only in the zone 1.4 times the pile radius the field variable is assigned
       frequency_update = 10        !! only in every 10th calculation increment the field variable is updated
-      min_coords3      = 85.0d0    !! for z-coords lower than this value the field variable is not assigned, change at end of file if needed!!
+      min_coords3      = 11.0d0    !! for z-coords larger than this value the field variable is not assigned, change at end of file if needed!!
       bytes_per_line   = 62        !! bytes for one line of the files to be read, Check if subroutine is reading correct number of lines!!
 !# =============================================================================
 !# Get processes
@@ -379,8 +400,8 @@ C
       do k = 1, nblock
 
         if(sqrt(COORDS(1,k)**2+ COORDS(2,k)**2) < pile_radius*1.2 .and.
-     1         COORDS(3,k)>min_coords3) then
-
+     1   sqrt(COORDS(1,k)**2+ COORDS(2,k)**2) > pile_radius*0.7 .and.
+     2         COORDS(3,k)<min_coords3) then
           coords_min = 1d6
 
           do jj = 1, nline
