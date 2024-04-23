@@ -12,7 +12,7 @@ Please see the PDF file for detailed explanations of the routines.
 
 All simulations and benchmarks have been performed with Abaqus 2023 and Intel OneAPI 2023. Compatibility with other compilers may not be guaranteed!
 
-The routines for the consideration of effective contact stresses only support simulations with up to 6 CPUs.
+The routines for the consideration of effective contact stresses only support simulations with up to 8 CPUs.
 
 The auxiliary routines contained in "tools.f" were written by Prof. A. Niemunis.
 
