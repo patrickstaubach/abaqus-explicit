@@ -454,7 +454,7 @@
       
       !Material properties as defined in the input  file (same order as Niemunis UMAT)
       ! ------------------------------------
-      MatP%phi      = props(1)        ! friction angle (degree)
+      MatP%phi      = props(1)        ! friction angle (radians)
       MatP%nu       = props(2)        ! poisson's ratio for increased shear stiffness
       MatP%bauerHs  = props(3)        ! granular hardness
       MatP%bauerN   = props(4)        ! exponent in Bauer's compression rule
