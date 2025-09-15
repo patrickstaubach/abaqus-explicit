@@ -21,6 +21,7 @@
 !
 ! REVISION HISTORY
 !> @date 02.02.2021 - Initial version
+!> @date 15.09.2025 - Bugfix for isfirstinc
 !=======================================================================================================
       subroutine vumat(
 c Read only (unmodifiable) variables -
@@ -39,9 +40,9 @@ c
 c Variable declaration
 c 
       dimension props(nprops), density(nblock), coordMp(nblock,*),
-     &  charLength(nblock),dtArray(2*(nblock)+1), strainInc(nblock, ndir+nshr),
+     &  charLength(nblock),dtArray(2*(nblock)+1),
      &  relSpinInc(nblock,nshr), tempOld(nblock),
-     &  stretchOld(nblock,ndir+nshr),
+     &  stretchOld(nblock,ndir+nshr), strainInc(nblock, ndir+nshr),
      &  defGradOld(nblock, ndir+nshr+nshr),
      &  fieldOld(nblock,nfieldv), stressOld(nblock,ndir+nshr),
      &  stateOld(nblock,nstatev), enerInternOld(nblock),
@@ -76,6 +77,9 @@ c
 
       integer isfirstinc, ndi, nshrmat, nmat_props, nstatev_mat
       
+c --- choose a statev slot to store an init flag; use the last one
+      integer :: init_idx
+
 !xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
        !Variables for pore water pressure
        KPerm       = 1.00d-10 ! permeability
@@ -107,21 +111,22 @@ c
       nshrmat     = nshr
       nmat_props  = nprops
       nstatev_mat = nstatev
-        
-      if ((time(1).le.0.0d0).and.(time(2).le.0.10d0)) then
-        isfirstinc=1
-        KSTEP=1
-        KINC=1
-      else
-        KSTEP=10
-        KINC=10
-      endif
+      isfirstinc  = 0
+      KSTEP       = 10
+      KINC        = 10
       
 !*************************************************************************
                
       do iblock = 1, nblock     
 
         statev(:) = stateOld(iblock,:)
+        
+        if (statev(init_idx).lt.0.5d0) then
+          isfirstinc = 1
+          KSTEP=1
+          KINC=1
+          statev(init_idx) = 1.0d0
+        end if 
         
         do i = 1, ndi
           stress(i)     = stressOld(iblock,i)
