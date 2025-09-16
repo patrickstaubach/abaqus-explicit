@@ -10,8 +10,8 @@
 !
 ! SUBROUTINE: VUMAT_HMC_Staubach
 !
-!> @author Patrick Staubach, patrick.staubach@yahoo.de
-!          Bauhaus University Weimar, Ruhr-University Bochum
+!> @author Patrick Staubach, patrick.staubach@uni-weimar.de
+!          Bauhaus-Universität Weimar
 !
 ! DESCRIPTION:
 !> @brief Contains the hydro-mechanically coupled explicit vumat interface
@@ -111,10 +111,11 @@ c --- choose a statev slot to store an init flag; use the last one
       nshrmat     = nshr
       nmat_props  = nprops
       nstatev_mat = nstatev
+      init_idx    = nstatev
       isfirstinc  = 0
       KSTEP       = 10
       KINC        = 10
-      
+
 !*************************************************************************
                
       do iblock = 1, nblock     
