@@ -1,211 +1,187 @@
 !=======================================================================================================
-!This file is part of VUMAT_HMC_Staubach.
+! this file is part of vumat_hmc_staubach.
 !
-!VUMAT_HMC_Staubach is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License !as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+! vumat_hmc_staubach is free software: you can redistribute it and/or modify it under the terms of the
+! gnu general public license as published by the free software foundation, either version 3 of the license,
+! or (at your option) any later version.
 !
-!VUMAT_HMC_Staubach is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied !warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+! vumat_hmc_staubach is distributed in the hope that it will be useful, but without any warranty; without
+! even the implied warranty of merchantability or fitness for a particular purpose. see the gnu general public
+! license for more details.
 !
-!You should have received a copy of the GNU General Public License along with VUMAT_HMC_Staubach. If not, see <https://www.gnu.org/licenses/>. 
+! you should have received a copy of the gnu general public license along with vumat_hmc_staubach.
+! if not, see <https://www.gnu.org/licenses/>.
 !=======================================================================================================
 !
-! SUBROUTINE: VUSDFLD
+! subroutine: vusdfld
 !
-!> @author Patrick Staubach, patrick.staubach@yahoo.de
-!          Bauhaus University Weimar, Ruhr-University Bochum
+!> @author patrick staubach, patrick.staubach@yahoo.de
+!          bauhaus university weimar, ruhr-university bochum
 !
-! DESCRIPTION:
-!> @brief Contains the VUSDFLD routine used to calculate effective interface friction according to the paper
-!> @brief "Hydro-mechanically coupled CEL analyses with effective contact stresses" https://onlinelibrary.wiley.com/doi/10.1002/nag.3725 International Journal for Numerical and Analytical Methods in Geomechanics 
+! description:
+!> contains the vusdfld routine used to calculate effective interface friction according to the paper
+!> "hydro-mechanically coupled cel analyses with effective contact stresses"
+!> international journal for numerical and analytical methods in geomechanics
+!> https://onlinelibrary.wiley.com/doi/10.1002/nag.3725
 !
-! REVISION HISTORY
-!> @date 03.03.2024 - Initial version
-!> @date 22.03.2024 - Support of up to 8 CPUs
+! revision history
+!> 03.03.2024 - initial version
+!> 22.03.2024 - support of up to 8 cpus
+!> 23.10.2025 - No CPU limitation, stylistic cleanup
 !=======================================================================================================
       subroutine vusdfld(
-c Read only variables -
+c read only variables -
      1   nblock, nstatev, nfieldv, nprops, ndir, nshr,
-     2   jElem, kIntPt, kLayer, kSecPt,
-     3   stepTime, totalTime, dt, cmname,
-     4   coordMp, direct, T, charLength, props,
-     5   stateOld,
-c Write only variables -
-     6   stateNew, field )
+     2   jelem, kintpt, klayer, ksecpt,
+     3   steptime, totaltime, dt, cmname,
+     4   coordmp, direct, t, charlength, props,
+     5   stateold,
+c write only variables -
+     6   statenew, field )
 c
       include 'vaba_param.inc'
 c
-      dimension jElem(nblock), coordMp(nblock,*),
-     1 direct(nblock,3,3), T(nblock,3,3),
-     2          charLength(nblock), props(nprops),
-     3          stateOld(nblock,nstatev),
-     4          stateNew(nblock,nstatev),
-     5          field(nblock,nfieldv)
+c ---- arguments (arrays declared with dimension as requested)
+      integer nblock, nstatev, nfieldv, nprops, ndir, nshr
+      integer kintpt(nblock), klayer(nblock), ksecpt(nblock)
+      dimension jelem(nblock), coordmp(nblock,*), direct(nblock,3,3), t(nblock,3,3)
       character*80 cmname
+      real*8 steptime, totaltime, dt
+      real*8 charlength(nblock), props(nprops)
+      dimension stateold(nblock,nstatev), statenew(nblock,nstatev)
+      dimension field(nblock,nfieldv)
 c
-c     Local arrays from vgetvrm are dimensioned to
-c     maximum block size (maxblk)
+c ---- locals
+      integer          kprocessnum, lun, ios, k
+      character*256    outdir
+      character*128    fdata, fmark
+      logical          do_write, ex
+      integer          nw
+      real*8           normal_vector(2), normal_stress(2)
+      real*8           pile_center(2), pile_radius, min_coords3, max_coords3
+      real*8           dx, dy, nrm
+      
+!#============================================================================= !# Variables to be edited !#
+
+      pile_radius   = 1.0d0   !! only in the zone 1.2 times the pile radius the field variable is assigned
+      min_coords3   = 0.0d0   !! for z-coords lower than this value the field variable is not assigned, change at end of file if needed!!
+      max_coords3   = 11.0d0  !! for z-coords larger than this value the field variable is not assigned, change at end of file if needed!!
+      pile_center(1)= 0.0d0 !! define pile center in x
+      pile_center(2)= 0.0d0 !! define pile center in y
+
 c
-      parameter( nrData=6 )
-      character*3 cData(maxblk*nrData)
-      dimension rData(maxblk*nrData), jData(maxblk*nrData)
-      real(8) normal_vector(2),normal_stress(2), pile_center(2), pile_radius, min_coords3
-      integer KPROCESSNUM, myunit
-
-      logical file_exists
-      character*256 OUTDIR
-      
-      CALL VGETOUTDIR( OUTDIR, LENOUTDIR )
-      
-!# =============================================================================
-!# Variables to be edited
-!# =============================================================================
-      pile_radius      = 0.5d0      !! only in the zone 1.4 times the pile radius the field variable is assigned
-      min_coords3      = 85.0d0     !! for z-coords lower than this value the field variable is not assigned, change at end of file if needed!!
-      pile_center(1:2) = [0.0d0,0.0d0] !! define pile center
-!# =============================================================================
-!# Get processes
-!# =============================================================================
-      !! field(:,2) is filled by vufield
-      if(any(field(:,2)<5)) return
-
-      file_exists = .false.
-
-      CALL VGETRANK(KPROCESSNUM) !! This gives the process number 
-
-      if(KPROCESSNUM == 0) then
-        myunit =105
-        inquire(file = 'vusdfld_out1.dat',
-     1   exist=file_exists)
-
-        if(file_exists) then
-          open(unit = myunit, file = 'vusdfld_out1.dat',
-     1    status="old", position="append", action="readwrite", iostat = ios)
-        else
-          open(unit = myunit, file = 'vusdfld_out1.dat',
-     1    status='new', action="write", iostat = ios)
+c ---- identify rank / filenames
+      call vgetrank(kprocessnum)
+      call vgetoutdir(outdir, lenoutdir)
+      call make_filenames(outdir, kprocessnum, fdata, fmark)
+c
+c ---- open per-rank file and truncate (no accumulation)
+      open(newunit=lun, file=trim(fdata), form='formatted',
+     &     access='sequential', status='replace',
+     &     action='write', iostat=ios)
+      if (ios .ne. 0) return
+c
+      nw = 0
+c
+c ---- compute and write samples (every increment; reader controls cadence)
+      do 500 k = 1, nblock
+c       initialize field for this point
+        field(k,:) = 0.0d0
+        do_write = .false.
+c       radial filter
+        do_write = ( sqrt(coordmp(k,1)**2 + coordmp(k,2)**2)
+     &               .lt. (pile_radius*1.2d0) )
+c       z window [min_coords3, max_coords3]
+        if (do_write) do_write = (coordmp(k,3) .lt. max_coords3)
+        if (do_write) do_write = (coordmp(k,3) .gt. min_coords3)
+c
+        if (do_write) then
+c         inward normal (multiply by -1), projected in xy plane
+          dx  = coordmp(k,1) - pile_center(1)
+          dy  = coordmp(k,2) - pile_center(2)
+          nrm = sqrt(dx*dx + dy*dy)
+          if (nrm .eq. 0.0d0) goto 500
+          normal_vector(1) = -dx / nrm
+          normal_vector(2) = -dy / nrm
+c
+c         inside the pile, flip to outward
+          if ( (coordmp(k,1)**2 + coordmp(k,2)**2) .le. pile_radius**2 ) then
+            normal_vector(1) = -normal_vector(1)
+            normal_vector(2) = -normal_vector(2)
+          endif
+c
+c         stress projection 
+          normal_stress(1) = stateold(k,27)*normal_vector(1)
+     &                     + stateold(k,30)*normal_vector(2)
+          normal_stress(2) = stateold(k,28)*normal_vector(2)
+     &                     + stateold(k,30)*normal_vector(1)
+c
+          field(k,1) = abs( normal_stress(1)*normal_vector(1)
+     &                    + normal_stress(2)*normal_vector(2) )
+     &               / ( stateold(k,24)
+     &                 + abs( normal_stress(1)*normal_vector(1)
+     &                      + normal_stress(2)*normal_vector(2) )
+     &                 + stateold(k,25) )
+c
+c         clamp and sanitize
+          if (isnan(field(k,1))) field(k,1) = 0.0d0
+          if (field(k,1) .gt. 1.0d0) field(k,1) = 1.0d0
+          if (field(k,1) .lt. 0.0d0) field(k,1) = 0.0d0
+c
+c         one line: x y z value
+          write(lun,'(4(1x,es24.16))') coordmp(k,1), coordmp(k,2),
+     &                                   coordmp(k,3), field(k,1)
+          nw = nw + 1
         endif
-      elseif(KPROCESSNUM == 1) then
-        myunit =106
-        inquire(file = 'vusdfld_out2.dat',
-     1   exist=file_exists)
-
-        if(file_exists) then
-          open(unit = myunit, file = 'vusdfld_out2.dat',
-     1    status="old", position="append", action="readwrite", iostat = ios)
-        else
-          open(unit = myunit, file = 'vusdfld_out2.dat',
-     1    status='new', action="write", iostat = ios)
-        endif
-      elseif(KPROCESSNUM == 2) then
-        myunit =107
-        inquire(file = 'vusdfld_out3.dat',
-     1   exist=file_exists)
-
-        if(file_exists) then
-          open(unit = myunit, file = 'vusdfld_out3.dat',
-     1    status="old", position="append", action="readwrite", iostat = ios)
-        else
-          open(unit = myunit, file = 'vusdfld_out3.dat',
-     1    status='new', action="write", iostat = ios)
-        endif
-      elseif(KPROCESSNUM == 3) then
-        myunit =108
-        inquire(file = 'vusdfld_out4.dat',
-     1   exist=file_exists)
-
-        if(file_exists) then
-          open(unit = myunit, file = 'vusdfld_out4.dat',
-     1    status="old", position="append", action="readwrite", iostat = ios)
-        else
-          open(unit = myunit, file = 'vusdfld_out4.dat',
-     1    status='new', action="write", iostat = ios)
-        endif
-      elseif(KPROCESSNUM == 4) then
-        myunit =109
-        inquire(file = 'vusdfld_out5.dat',
-     1   exist=file_exists)
-
-        if(file_exists) then
-          open(unit = myunit, file = 'vusdfld_out5.dat',
-     1    status="old", position="append", action="readwrite", iostat = ios)
-        else
-          open(unit = myunit, file = 'vusdfld_out5.dat',
-     1    status='new', action="write", iostat = ios)
-        endif
-      elseif(KPROCESSNUM == 6) then
-        myunit =110
-        inquire(file = 'vusdfld_out6.dat',
-     1   exist=file_exists)
-
-        if(file_exists) then
-          open(unit = myunit, file = 'vusdfld_out6.dat',
-     1    status="old", position="append", action="readwrite", iostat = ios)
-        else
-          open(unit = myunit, file = 'vusdfld_out6.dat',
-     1    status='new', action="write", iostat = ios)
-        endif
-      elseif(KPROCESSNUM == 7) then
-        myunit =111
-        inquire(file = 'vusdfld_out7.dat',
-     1   exist=file_exists)
-
-        if(file_exists) then
-          open(unit = myunit, file = 'vusdfld_out7.dat',
-     1    status="old", position="append", action="readwrite", iostat = ios)
-        else
-          open(unit = myunit, file = 'vusdfld_out7.dat',
-     1    status='new', action="write", iostat = ios)
-        endif
-      elseif(KPROCESSNUM == 8) then
-        myunit =112
-        inquire(file = 'vusdfld_out8.dat',
-     1   exist=file_exists)
-
-        if(file_exists) then
-          open(unit = myunit, file = 'vusdfld_out8.dat',
-     1    status="old", position="append", action="readwrite", iostat = ios)
-        else
-          open(unit = myunit, file = 'vusdfld_out8.dat',
-     1    status='new', action="write", iostat = ios)
-        endif
+c
+500   continue
+c
+      close(lun)
+c
+c ---- create marker only if we actually wrote something (nw > 0)
+      if (nw .gt. 0) then
+         open(newunit=lun, file=trim(fmark), status='replace',
+     &        action='write', iostat=ios)
+         if (ios .eq. 0) then
+            write(lun,'(a)') 'ok'
+            close(lun)
+         endif
       else
-        write(*,*) 'ERROR SUBROUTINE VUFIELD: Not defined for the given number of processes'
+c        ensure no stale marker exists for empty data
+         inquire(file=trim(fmark), exist=ex)
+         if (ex) then
+            open(newunit=lun, file=trim(fmark), status='old', iostat=ios)
+            if (ios .eq. 0) close(lun, status='delete')
+         endif
       endif
-	  
-!# =============================================================================
-!# Calculate field variable
-!# =============================================================================
-      do 100 k = 1, nblock
-
-        if(sqrt(coordMp(k,1)**2+ coordMp(k,2)**2) < pile_radius*1.2 .and.
-     1          coordMp(k,3)>min_coords3) then
-
-         !! The normal vector has to point inward (multiply with -1)
-         normal_vector(1:2) = -(coordMp(k,1:2)-pile_center(1:2))/norm2(coordMp(k,1:2)-pile_center(1:2))
-
-         !! The pile has a radius of pile_radius, inside of the pile the normal vector has to point outward
-         if(sqrt(coordMp(k,1)**2+coordMp(k,2)**2) <= pile_radius)
-     1    normal_vector(1:2) = - normal_vector(1:2)
-
-         normal_stress(1) = stateOld(k,27)*normal_vector(1) + stateOld(k,30)*normal_vector(2)
-         normal_stress(2) = stateOld(k,28)*normal_vector(2) + stateOld(k,30)*normal_vector(1)
-
-         field(k,1) = abs(dot_product(normal_stress,normal_vector))
-     1   /(stateOld(k,24) + abs(dot_product(normal_stress,normal_vector))
-     2   +  stateOld(k,25))
-
-         if(field(k,1) > 1.0d0) field(k,1) = 1.0d0
-         if(field(k,1) < 0.0d0) field(k,1) = 0.0d0
-         if(isnan(field(k,1))) field(k,1) = 0.0d0
-
-          write(myunit,*) coordMp(k,1:3),field(k,1)
-
+c
+      return
+      end
+c
+c=======================================================================================================
+c helper (same signature as in vufield): data and marker names (rbuf = 6 chars)
+c=======================================================================================================
+      subroutine make_filenames(outdir, rank, fdata, fmark)
+      character*(*) outdir
+      integer       rank
+      character*128 fdata, fmark
+      character*6   rbuf
+      integer       lod
+c
+      write(rbuf,'(i6.6)') rank
+      fdata = 'vusdfld_out_rank'//rbuf//'.txt'
+      fmark = 'vusdfld_out_rank'//rbuf//'.ok'
+c
+      lod = len_trim(outdir)
+      if (lod .gt. 0) then
+        if (outdir(lod:lod) .ne. '/' .and. outdir(lod:lod) .ne. '\' ) then
+          fdata = outdir(1:lod)//'/'//fdata
+          fmark = outdir(1:lod)//'/'//fmark
+        else
+          fdata = outdir(1:lod)//fdata
+          fmark = outdir(1:lod)//fmark
         endif
-
-  100 continue
-
-      close(myunit)
-
-
+      endif
 c
       return
       end
