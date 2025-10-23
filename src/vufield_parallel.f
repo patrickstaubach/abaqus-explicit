@@ -10,8 +10,8 @@
 !
 ! SUBROUTINE: VUFIELD
 !
-!> @author Patrick Staubach, patrick.staubach@yahoo.de
-!          Bauhaus University Weimar, Ruhr-University Bochum
+!> @author Patrick Staubach, patrick.staubach@uni-weimar.de
+!          Bauhaus University Weimar
 !
 ! DESCRIPTION:
 !> @brief Contains the VUFIELD routine used to calculate effective interface friction according to the paper

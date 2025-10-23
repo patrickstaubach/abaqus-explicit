@@ -10,8 +10,9 @@
 !
 ! SUBROUTINE: HPP_Staubach
 !
-!> @author Patrick Staubach, patrick.staubach@yahoo.de
-!          Bauhaus University Weimar, Ruhr-University Bochum
+!> @author Patrick Staubach, patrick.staubach@uni-weimar.de
+!          Bauhaus University Weimar
+!
 !
 ! DESCRIPTION:
 !> @brief Contains the hypoplastic constitutive model with the extension of the intergranular strain

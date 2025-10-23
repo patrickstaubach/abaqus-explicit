@@ -10,8 +10,9 @@
 !
 ! SUBROUTINE: VUMAT_HMC_Staubach
 !
-!> @author Patrick Staubach, patrick.staubach@yahoo.de
-!          Bauhaus University Weimar, Ruhr-University Bochum
+!> @author Patrick Staubach, patrick.staubach@uni-weimar.de
+!          Bauhaus University Weimar
+!
 !
 ! DESCRIPTION:
 !> @brief Contains the hydro-mechanically coupled explicit vumat interface

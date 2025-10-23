@@ -15,8 +15,8 @@
 !
 ! subroutine: vusdfld
 !
-!> @author patrick staubach, patrick.staubach@yahoo.de
-!          bauhaus university weimar, ruhr-university bochum
+!> @author Patrick Staubach, patrick.staubach@uni-weimar.de
+!          Bauhaus University Weimar
 !
 ! description:
 !> contains the vusdfld routine used to calculate effective interface friction according to the paper

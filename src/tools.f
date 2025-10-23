@@ -10,8 +10,9 @@
 !
 ! Module: tools
 !
-!> @author Patrick Staubach, patrick.staubach@yahoo.de
-!          Bauhaus University Weimar, Ruhr-University Bochum
+!> @author Patrick Staubach, patrick.staubach@uni-weimar.de
+!          Bauhaus University Weimar
+!
 !
 ! DESCRIPTION:
 ! @briefT Tensor operations
