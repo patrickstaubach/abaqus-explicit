@@ -1,11 +1,11 @@
 !=======================================================================================================
-!This file is part of VUMAT_HMC_Staubach_Abq2020.
+!This file is part of VUMAT_HMC_Staubach.
 !
-!VUMAT_HMC_Staubach_Abq2020 is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License !as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+!VUMAT_HMC_Staubach is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License !as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 !
-!VUMAT_HMC_Staubach_Abq2020 is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied !warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+!VUMAT_HMC_Staubach is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied !warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 !
-!You should have received a copy of the GNU General Public License along with VUMAT_HMC_Staubach_Abq2020. If not, see <https://www.gnu.org/licenses/>. 
+!You should have received a copy of the GNU General Public License along with VUMAT_HMC_Staubach. If not, see <https://www.gnu.org/licenses/>. 
 !=======================================================================================================
 !
 ! Module: tools
@@ -19,8 +19,9 @@
 !
 ! REVISION HISTORY
 !> @date 02.02.2021 - Initial version
+!> @date 04.03.2026 - Updated and made considerably faster  
 !=======================================================================================================
-      module tools   !from A. Niemunis  (KIT Karlsruhe)                                  
+      module tools   ! from A. Niemunis  (KIT Karlsruhe)                                  
       implicit none
 	  save              
       integer :: ixx,jxx
@@ -146,9 +147,13 @@
         integer :: i,j
         do i=1,ntens
         do j=1,ntens
-          if (j <= 3) map2ddsdde(i,j) = LL(i6(i),j6(i),i6(j),j6(j))
-          if (j >  3) map2ddsdde(i,j) =  0.5d0*
-     &     (LL(i6(i),j6(i),i6(j),j6(j))+LL(i6(i),j6(i),j6(j),i6(j)) )
+          if (j <= 3) then
+            map2ddsdde(i,j) = LL(i6(i),j6(i),i6(j),j6(j))
+          else
+            map2ddsdde(i,j) = 0.5d0*(
+     &        LL(i6(i),j6(i),i6(j),j6(j))
+     &       +LL(i6(i),j6(i),j6(j),i6(j)))
+          endif
         enddo
         enddo
       end function map2ddsdde
@@ -157,15 +162,11 @@
         implicit none
         real(8), intent(in), dimension(1:3,1:3)  :: a,b
         real(8), dimension(1:3,1:3,1:3,1:3) :: outmal
-        integer :: i,j,k,l
+        integer :: i,j
         do i=1,3
-        do j=1,3
-        do k=1,3
-        do l=1,3
-            outmal(i,j,k,l) =  a(i,j)*b(k,l)
-        enddo
-        enddo
-        enddo
+          do j=1,3
+            outmal(i,j,:,:) = a(i,j)*b
+          enddo
         enddo
       end function outmal
 
@@ -173,15 +174,7 @@
         implicit none
         real(8), intent(in), dimension(1:3,1:3)  :: a,b  
         real(8) :: mal
-         mal          =  a(1,1)*b(1,1)+
-     &                    a(1,2)*b(1,2)+
-     &                    a(1,3)*b(1,3)+
-     &                    a(2,1)*b(2,1)+
-     &                    a(2,2)*b(2,2)+
-     &                    a(2,3)*b(2,3)+
-     &                    a(3,1)*b(3,1)+
-     &                    a(3,2)*b(3,2)+
-     &                    a(3,3)*b(3,3)
+        mal = sum(a*b)
       end function mal
 
       function mal2(a,b)   !from A. Niemunis
@@ -189,20 +182,11 @@
         real(8), intent(in), dimension(1:3,1:3,1:3,1:3) :: a
         real(8), intent(in),  dimension(1:3,1:3) :: b
         real(8), dimension(1:3,1:3):: mal2
-        integer :: i,j
-        do  i=1,3
-        do  j=1,3
-        mal2(i,j)    =  a(i,j,1,1)*b(1,1)+
-     &                  a(i,j,1,2)*b(1,2)+
-     &                  a(i,j,1,3)*b(1,3)+
-     &                  a(i,j,2,1)*b(2,1)+
-     &                  a(i,j,2,2)*b(2,2)+
-     &                  a(i,j,2,3)*b(2,3)+
-     &                  a(i,j,3,1)*b(3,1)+
-     &                  a(i,j,3,2)*b(3,2)+
-     &                  a(i,j,3,3)*b(3,3)
-        enddo
-        enddo
+        real(8) :: av(9,9), bv(9), rv(9)
+        av = reshape(a,(/9,9/))
+        bv = reshape(b,(/9/))
+        rv = matmul(av,bv)
+        mal2 = reshape(rv,(/3,3/))
       end function mal2
 
       function mal3(a,b)    !from A. Niemunis
@@ -210,44 +194,21 @@
         real(8), intent(in),  dimension(1:3,1:3) :: a
         real(8), intent(in), dimension(1:3,1:3,1:3,1:3) :: b
         real(8), dimension(1:3,1:3):: mal3
-        integer :: k,l
-         do  k=1,3
-         do  l=1,3
-         mal3(k,l) =   a(1,1)*b(1,1,k,l)+
-     &                 a(1,2)*b(1,2,k,l)+
-     &                 a(1,3)*b(1,3,k,l)+
-     &                 a(2,1)*b(2,1,k,l)+
-     &                 a(2,2)*b(2,2,k,l)+
-     &                 a(2,3)*b(2,3,k,l)+
-     &                 a(3,1)*b(3,1,k,l)+
-     &                 a(3,2)*b(3,2,k,l)+
-     &                 a(3,3)*b(3,3,k,l)
-         enddo
-         enddo
+        real(8) :: bv(9,9), av(9), rv(9)
+        bv = reshape(b,(/9,9/))
+        av = reshape(a,(/9/))
+        rv = matmul(av,bv)
+        mal3 = reshape(rv,(/3,3/))
       end function mal3
 
       function mal4(a,b)    !from A. Niemunis
         implicit none
         real(8), intent(in), dimension(1:3,1:3,1:3,1:3):: a,b
         real(8), dimension(1:3,1:3,1:3,1:3):: mal4
-        integer :: i,j,k,l
-         do  i=1,3
-         do  j=1,3
-         do  k=1,3
-         do  l=1,3
-         mal4(i,j,k,l)= a(i,j,1,1)*b(1,1,k,l)+
-     &                 a(i,j,1,2)*b(1,2,k,l)+
-     &                 a(i,j,1,3)*b(1,3,k,l)+
-     &                 a(i,j,2,1)*b(2,1,k,l)+
-     &                 a(i,j,2,2)*b(2,2,k,l)+
-     &                 a(i,j,2,3)*b(2,3,k,l)+
-     &                 a(i,j,3,1)*b(3,1,k,l)+
-     &                 a(i,j,3,2)*b(3,2,k,l)+
-     &                 a(i,j,3,3)*b(3,3,k,l)
-         enddo
-         enddo
-         enddo
-         enddo
+        real(8) :: av(9,9), bv(9,9)
+        av = reshape(a,(/9,9/))
+        bv = reshape(b,(/9,9/))
+        mal4 = reshape(matmul(av,bv),(/3,3,3,3/))
       end function mal4
 
       function mal5(a,b)    !from A. Niemunis
@@ -255,24 +216,11 @@
         real(8),intent(in),dimension(1:3,1:3,1:3,1:3,1:3,1:3)::a
         real(8), intent(in), dimension(1:3,1:3):: b
         real(8), dimension(1:3,1:3,1:3,1:3):: mal5
-        integer :: i,j,k,l
-        do  i=1,3
-        do  j=1,3
-        do  k=1,3
-        do  l=1,3
-        mal5(i,j,k,l)=a(i,j,k,l,1,1)*b(1,1)+
-     &                    a(i,j,k,l,1,2)*b(1,2)+
-     &                    a(i,j,k,l,1,3)*b(1,3)+
-     &                    a(i,j,k,l,2,1)*b(2,1)+
-     &                    a(i,j,k,l,2,2)*b(2,2)+
-     &                    a(i,j,k,l,2,3)*b(2,3)+
-     &                    a(i,j,k,l,3,1)*b(3,1)+
-     &                    a(i,j,k,l,3,2)*b(3,2)+
-     &                    a(i,j,k,l,3,3)*b(3,3)
-        enddo
-        enddo
-        enddo
-        enddo
+        real(8) :: av(81,9), bv(9), rv(81)
+        av = reshape(a,(/81,9/))
+        bv = reshape(b,(/9/))
+        rv = matmul(av,bv)
+        mal5 = reshape(rv,(/3,3,3,3/))
       end function mal5
 
       function mal6(a,b)    !from A. Niemunis
@@ -280,24 +228,11 @@
         real(8),intent(in), dimension(1:3,1:3):: a
         real(8),intent(in),dimension(1:3,1:3,1:3,1:3,1:3,1:3)::b
         real(8), dimension(1:3,1:3,1:3,1:3):: mal6
-        integer :: i,j,k,l
-        do  i=1,3
-        do  j=1,3
-        do  k=1,3
-        do  l=1,3
-        mal6(i,j,k,l) =   a(1,1)*b(1,1,i,j,k,l)+
-     &                    a(1,2)*b(1,2,i,j,k,l)+
-     &                    a(1,3)*b(1,3,i,j,k,l)+
-     &                    a(2,1)*b(2,1,i,j,k,l)+
-     &                    a(2,2)*b(2,2,i,j,k,l)+
-     &                    a(2,3)*b(2,3,i,j,k,l)+
-     &                    a(3,1)*b(3,1,i,j,k,l)+
-     &                    a(3,2)*b(3,2,i,j,k,l)+
-     &                    a(3,3)*b(3,3,i,j,k,l)
-        enddo
-        enddo
-        enddo
-        enddo
+        real(8) :: bv(9,81), av(9), rv(81)
+        bv = reshape(b,(/9,81/))
+        av = reshape(a,(/9/))
+        rv = matmul(av,bv)
+        mal6 = reshape(rv,(/3,3,3,3/))
       end function mal6
 
       function outmal3(a,b)    !from A. Niemunis
@@ -305,16 +240,12 @@
         real(8), intent(in), dimension(1:3,1:3,1:3,1:3) :: a
         real(8), intent(in), dimension(1:3,1:3)  :: b
         real(8), dimension(1:3,1:3,1:3,1:3,1:3,1:3) :: outmal3
-        integer :: i,j,k,l,m,n
+        integer :: i,j,k,l
         do i=1,3
         do j=1,3
         do k=1,3
         do l=1,3
-        do m=1,3
-        do n=1,3
-            outmal3(i,j,k,l,m,n) =  a(i,j,k,l)*b(m,n)
-        enddo
-        enddo
+          outmal3(i,j,k,l,:,:) = a(i,j,k,l)*b
         enddo
         enddo
         enddo
@@ -368,7 +299,7 @@
         real(8), dimension(1:3,1:3,1:3,1:3) :: inv3333
         real(8), dimension(1:9,1:9) :: a,one
         real(8), dimension(1:9,1:18) :: c
-        real(8) :: cc, dd
+        real(8) :: cc, dd, scale
         integer :: i,j,k
         inv3333 = 0
         deleted = .FALSE.
@@ -385,15 +316,15 @@
         one = map299(Jdelta)
         c(1:9,1:9) = a
         c(1:9,10:18)=one
+        scale = maxval(abs(a))
+        if (scale < tiny(scale)) scale = 1.0d0
         do i=1,9                                                          
           cc = c(i,i)                                                     
-          if (abs(cc).lt.1d-6) return                                     
+          if (abs(cc) < 1.0d-10*scale) return
           c(i,i) = cc-1.0d0
           do k=i+1, 18
-             dd=c(i,k)/cc
-             do j=1,9
-               c(j,k) = c(j,k)-dd*c(j,i)
-             enddo
+            dd=c(i,k)/cc
+            c(1:9,k) = c(1:9,k) - dd*c(1:9,i)
           enddo
         enddo
         a= c(1:9,10:18)
@@ -446,26 +377,26 @@
         implicit none
         real(8), intent(in), dimension(1:3,1:3)  :: a
         real(8), dimension(1:3,1:3)  :: hated
-        real(8)  :: tr
-        tr =a(1,1)+a(2,2) +a(3,3)
-         hated = 0.0d0
-        if( abs(tr)  >  tiny(tr) )  hated = a/tr
+        real(8)  :: tval, inv_tval
+        tval = a(1,1)+a(2,2)+a(3,3)
+        hated = 0.0d0
+        if( abs(tval) > tiny(tval) ) then
+          inv_tval = 1.0d0/tval
+          hated = a * inv_tval
+        endif
       end function hated
 
       function normalized33(a)    !from A. Niemunis
         implicit none
         real(8), intent(in), dimension(1:3,1:3)  :: a
         real(8), dimension(1:3,1:3)  :: normalized33
-        real(8)  :: sqnorm
-        sqnorm =a(1,1)*a(1,1)+a(1,2)*a(1,2)+a(1,3)*a(1,3)+
-     &    a(2,1)*a(2,1)+a(2,2)*a(2,2)+a(2,3)*a(2,3)+
-     &    a(3,1)*a(3,1)+a(3,2)*a(3,2)+a(3,3)*a(3,3)
+        real(8)  :: sqnorm, inv_norm
+        sqnorm = sum(a*a)
         normalized33=0
-        if(sqnorm >  tiny(sqnorm)   ) then
-            sqnorm=sqrt(sqnorm)
-            normalized33=a/sqnorm
+        if(sqnorm > tiny(sqnorm)) then
+          inv_norm = 1.0d0/sqrt(sqnorm)
+          normalized33 = a * inv_norm
         endif
       end function normalized33
 
       end module
-     

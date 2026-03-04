@@ -1,0 +1,1 @@
+abaqus terminate j=step

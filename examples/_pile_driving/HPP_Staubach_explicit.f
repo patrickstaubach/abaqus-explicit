@@ -1,23 +1,27 @@
 !=======================================================================================================
-!This file is part of VUMAT_HMC_Staubach_Abq2020.
+!This file is part of VUMAT_HMC_Staubach.
 !
-!VUMAT_HMC_Staubach_Abq2020 is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License !as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+!VUMAT_HMC_Staubach is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License !as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 !
-!VUMAT_HMC_Staubach_Abq2020 is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied !warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+!VUMAT_HMC_Staubach is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied !warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 !
-!You should have received a copy of the GNU General Public License along with VUMAT_HMC_Staubach_Abq2020. If not, see <https://www.gnu.org/licenses/>. 
+!You should have received a copy of the GNU General Public License along with VUMAT_HMC_Staubach. If not, see <https://www.gnu.org/licenses/>. 
 !=======================================================================================================
 !
 ! SUBROUTINE: HPP_Staubach
 !
-!> @author Patrick Staubach, patrick.staubach@yahoo.de     
-!          Bauhaus University Weimar, formerly Karlsruhe (IBF)
+!> @author Patrick Staubach, patrick.staubach@uni-weimar.de
+!          Bauhaus University Weimar
+!
 !
 ! DESCRIPTION:
 !> @brief Contains the hypoplastic constitutive model with the extension of the intergranular strain
 !> @brief Uses an adaptive Newton scheme to evaluate the stress increment and the jacobian
+!> @brief Implementation of the hypoplastic model with intergranular strain extension 
+!> @brief according to https://www.bgu.ruhr-uni-bochum.de/bgu/mam/images/dissertationen/staubach__2022__heft_73_contributions_to_the_numerical_modelling_of_pile_installation_processes_and_high-cyclic_loading_of_soils_mit_db.pdf
 ! REVISION HISTORY
 !> @date 20.05.2018 - Initial version   
+!> @date 04.03.2026 - Updated and made considerably faster  
 !=======================================================================================================
       SUBROUTINE UMAT(STRESS,STATEV,DDSDDE,SSE,SPD,SCD,
      1 RPL,DDSDDT,DRPLDE,DRPLDT,
@@ -58,6 +62,11 @@
       real(8) :: Delta_stress_0(ntens),Delta_stress_1(ntens)
       real(8) :: stress0(ntens),stressCorrector(ntens),stress1(ntens)
       
+      !Pre-allocated tensors for error norm reuse
+      ! ------------------------------------
+      real(8) :: Terr(3,3), Tcorr_t(3,3)
+      real(8) :: normCorr, normDiff
+
       !Helpful variables
       ! ------------------------------------
       integer :: i_proj
@@ -224,9 +233,13 @@
       
       ! Compute the relative error of stress
       ! ------------------------------------
-      if(norm2(map2T(stressCorrector,ntens))>0.00000000001d0) then
-        Error  = norm2(map2T(stressCorrector-Dstress_1,ntens))
-     &         / norm2(map2T(stressCorrector,ntens))
+      Tcorr_t  = map2T(stressCorrector,ntens)
+      normCorr = norm2(Tcorr_t)
+
+      if(normCorr > 0.00000000001d0) then
+        Terr     = map2T(stressCorrector-Dstress_1,ntens)
+        normDiff = norm2(Terr)
+        Error    = normDiff / normCorr
       else
         Error = 1d-14
       endif
@@ -415,7 +428,7 @@
       !Intern, needed for vHP hypoplastic model
       ! ------------------------------------
       real(8) :: hatT(3,3),devT(3,3),NN(3,3),Stressp,trdevT2,epor
-      real(8) :: LLhat(3,3,3,3),LLhat2(3,3,3,3),Mstiff(3,3,3,3)
+      real(8) :: LLhat(3,3,3,3),Mstiff(3,3,3,3)
       real(8) :: fb,fe,fd,fs,aphi,edi,eci,eii,bigF,psi,cos3theta
       real(8) :: mtd,med,fdq,eporII,stiff_e,determinate,elast
       real(8) :: Tcorrected(3,3)
@@ -425,6 +438,13 @@
       ! ------------------------------------
       real(8) :: h_inter_strain(3,3)
       real(8) :: h_inter_strainD(3,3),rho,dirh
+
+      !rho**Chi computed once
+      ! ------------------------------------
+      real(8) :: rhoChi
+      !Intermediate vector: LLhat contracted with h_inter_strainD
+      ! ------------------------------------
+      real(8) :: LLhD(3,3)
 	  
       
       !Material properties as defined in the input order
@@ -452,7 +472,7 @@
       
       !Material properties as defined in the input  file (same order as Niemunis UMAT)
       ! ------------------------------------
-      MatP%phi      = props(1)        ! friction angle (degree)
+      MatP%phi      = props(1)        ! friction angle (radians)
       MatP%nu       = props(2)        ! poisson's ratio for increased shear stiffness
       MatP%bauerHs  = props(3)        ! granular hardness
       MatP%bauerN   = props(4)        ! exponent in Bauer's compression rule
@@ -490,7 +510,7 @@
       endif
 
       !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-      !This box contains som e material specific definitions as defined in the habilitation of Niemunis 
+      !This box contains some material specific definitions as defined in the habilitation of Niemunis 
       ! ------------------------------------
 
       edi = MatP%ed0*exp(-(3.0d0*Stressp/MatP%bauerHs)**MatP%bauerN)
@@ -545,7 +565,7 @@
       hatT      = zero
       hatT      = hated(Tcorrected)
 
-      fs        = 1.0d0/(hatT.xx.hatT) ! fs has originally been introduced by Niemunis and is not used in the commonly hypoplasticity
+      fs        = 1.0d0/sum(hatT*hatT)
       
       devT      = zero
       devT      = hatT-onethird*delta
@@ -580,37 +600,34 @@
       NN    = stiff_e*fs*fb*fe*fd*bigF*aphi*(hatT+devT)
       
 
-   !   !increased shear stiffness (comment next 7 lines out if it is not wished, code works fine without)
-   !   ! ------------------------------------
-   !  LLhat2 = zero
-   !  LLhat2 = LLhat                                                    
-   ! &       + ((1.0d0 + aphi**2/3.0d0 + aphi/sq3)*(1.0d0-2.0d0*MatP%nu)
-   ! &       / (1.0d0+MatP%nu)-1.0d0)
-   ! &       * (Jdelta - (delta.out.delta)/3.0d0)*fs*fb*fe
-   !  
-   !  NN     = LLhat2 .xx. (Inv(LLhat,ok) .xx. NN)                      
-   !  LLhat  = LLhat2
-      
-      !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-      
       !Get intergranular strain (explicit); implicit-> call intStiffimpl (same args)
       ! ------------------------------------
       call intStiffimpl(h_inter_strain,D,MatP%Rmax,MatP%betaR,
      &               doth,dirh,rho,h_inter_strainD)
+
+      !Compute rho**Chi only once
+      ! ------------------------------------
+      rhoChi = rho**MatP%Chi
+
       !Compute Mstiff in dependence of the direction of integranular strain
       ! ------------------------------------
       Mstiff = zero
 
       if (dirh>zero) then
-          Mstiff=(rho**MatP%Chi*MatP%m_T+(1.0d0-rho**MatP%Chi)       
-     &          *MatP%m_R)* LLhat + rho**MatP%Chi*(1.0d0-MatP%m_T)
-     &          *(LLhat.xx.(h_inter_strainD.out.h_inter_strainD))  
-     &          + rho**MatP%Chi*(NN.out.h_inter_strainD)  
+          !LLhat:(hD.out.hD) replaced by cheaper (hD.LLhat).out.hD
+          ! ------------------------------------
+          LLhD   = h_inter_strainD .xx. LLhat
+
+          Mstiff=(rhoChi*MatP%m_T+(1.0d0-rhoChi)       
+     &          *MatP%m_R)* LLhat + rhoChi*(1.0d0-MatP%m_T)
+     &          *(LLhD .out. h_inter_strainD)  
+     &          + rhoChi*(NN.out.h_inter_strainD)  
       else
-          
-          Mstiff=(rho**MatP%Chi*MatP%m_T+(1.0d0-rho**MatP%Chi)
-     &          *MatP%m_R)* LLhat + rho**MatP%Chi*(MatP%m_R-MatP%m_T)
-     &          *(LLhat.xx.(h_inter_strainD .out.h_inter_strainD))  
+          LLhD   = h_inter_strainD .xx. LLhat
+
+          Mstiff=(rhoChi*MatP%m_T+(1.0d0-rhoChi)
+     &          *MatP%m_R)* LLhat + rhoChi*(MatP%m_R-MatP%m_T)
+     &          *(LLhD .out.h_inter_strainD)  
       endif
       
       
@@ -618,17 +635,6 @@
       ! ------------------------------------
       DDSDDE = zero
       DDSDDE = map2ddsdde(Mstiff,ntens)
-	  
-       !determinate=get_det(ddsdde,ntens)
-       !if (determinate.le.0.0d0) then
-       !    elast=(ddsdde(1,1)+ddsdde(2,2)+ddsdde(3,3))/20.0d0
-       !    do while (determinate.le.0.0d0)
-       !    do i=1,ntens 
-       !    ddsdde(i,i)=ddsdde(i,i)+elast
-       !    enddo
-       !    determinate=get_det(ddsdde,ntens)
-       !    enddo
-       !endif
       
       if(any(isnan(DDSDDE))) then
            write(*,*) '-----------------------------------'
@@ -771,10 +777,11 @@
       real(8) :: h_inter_strain2(3,3)
       
       real(8), dimension (1:3,1:3,1:3,1:3) :: U,h,hi,hiU
-      real(8), dimension (1:3,1:3,1:3,1:3,1:3,1:3) ::   dUijkldamn
+      real(8), dimension (1:3,1:3,1:3,1:3) :: dU_D  !analytical contraction, replaces 6th-order dUijkldamn
+      real(8) :: negD(3,3), trDh
       
       real(8), parameter:: zero=0.0d0
-      integer :: i,j,k,l,m,n
+      integer :: i,j,k,l
       
       h_inter_strainD   = zero
       h_inter_strainD   = normalized33(h_inter_strain)
@@ -803,24 +810,25 @@
         
       U = zero  
       U = Jdelta  - rhobetax * (h_inter_strainD .out. h_inter_strainD)
-      
-      dUijkldamn = zero
-      
-      do 20 i=1,3
-      do 20 j=1,3
-      do 20 k=1,3
-      do 20 l=1,3
-      do 20 m=1,3
-      do 20 n=1,3
-          
-  20  dUijkldamn(i,j,k,l,m,n)=-c1*((betaR-2.0d0)
-     &       *h_inter_strain(i,j)*h_inter_strain(k,l)
-     &       *h_inter_strain(m,n)+h_inter_strainNorm*h_inter_strain(k,l)
-     &       *delta(i,m)*delta(j,n)+h_inter_strainNorm
-     &       *h_inter_strain(i,j)*delta(k,m)*delta(l,n))
+
+      negD = -D
+      trDh = sum(h_inter_strain * negD)
+
+      do i=1,3
+      do j=1,3
+      do k=1,3
+      do l=1,3
+        dU_D(i,j,k,l) = -c1*(
+     &      (betaR-2.0d0)*h_inter_strain(i,j)*h_inter_strain(k,l)*trDh
+     &    + h_inter_strainNorm*h_inter_strain(k,l)*negD(i,j)
+     &    + h_inter_strainNorm*h_inter_strain(i,j)*negD(k,l))
+      enddo
+      enddo
+      enddo
+      enddo
       
       h = zero
-      h = Jdelta - ( dUijkldamn .xx. -D)*0.5d0
+      h = Jdelta - dU_D*0.5d0
       hi = zero
       hi = inv3333(h,ok)
 
@@ -828,7 +836,7 @@
       hiU  = hi .xx. U
       
       doth = zero
-      doth = hiU .xx. -D 
+      doth = hiU .xx. negD
       
       else
           
@@ -851,8 +859,7 @@
        rho                  = h_inter_strainNorm/Rmax 
           
        if (rho.gt.1.0d0) then
-           doth             =  doth + h_inter_strain2/rho 
-     &                      - h_inter_strain2
+           doth             =  doth + h_inter_strain2*(1.0d0/rho-1.0d0)
            h_inter_strain2  =  h_inter_strain2/rho 
            rho              =  1.0d0
                             
@@ -901,7 +908,9 @@
       
       real(8),intent(out)   :: stress_visc(ntens),CMATRIX(ntens,ntens)
       
-      real(8)               :: Stressp,lambda,mou,ALAMDA,AMU
+      real(8)               :: Stressp,ALAMDA,AMU
+      real(8)               :: lambda_slope,mou_slope
+      integer               :: i
       
       real(8), parameter    :: zero=0.0d0
       
@@ -925,14 +934,14 @@
           
       !Linear interpolation of stiffness
       ! ------------------------------------
-          lambda = (propsVisco(3)-propsVisco(4))
-     &           / (propsVisco(2)-propsVisco(1))
+          lambda_slope = (propsVisco(3)-propsVisco(4))
+     &                 / (propsVisco(2)-propsVisco(1))
           
-          mou    = (propsVisco(5)-propsVisco(6))
-     &           / (propsVisco(2)-propsVisco(1))
+          mou_slope    = (propsVisco(5)-propsVisco(6))
+     &                 / (propsVisco(2)-propsVisco(1))
                     
-          ALAMDA = propsVisco(4) + lambda*(propsVisco(2)-Stressp)   !minimum of lambda + interpolation
-          AMU    = propsVisco(6) + mou*(propsVisco(2)-Stressp)      !minimum of mou + interpolation
+          ALAMDA = propsVisco(4) + lambda_slope*(propsVisco(2)-Stressp)
+          AMU    = propsVisco(6) + mou_slope*(propsVisco(2)-Stressp)
           
       endif
       
@@ -948,18 +957,21 @@
       
       endif 
       
-      !Constitutive stiffness
+      !Constitutive stiffness - set directly without redundant overwrites
       ! ------------------------------------
-      CMATRIX                   = zero
-      
-      CMATRIX(1:3,1:3)          = ALAMDA+2.0d0*AMU
-      CMATRIX(4:ntens,4:ntens)  = AMU
-      CMATRIX(1,2)              = ALAMDA
-      CMATRIX(1,3)              = ALAMDA
-      CMATRIX(2,3)              = ALAMDA
-      CMATRIX(2,1)              = CMATRIX(1,2)
-      CMATRIX(3,1)              = CMATRIX(1,3)
-      CMATRIX(3,2)              = CMATRIX(2,3)	  
+      CMATRIX          = zero
+      CMATRIX(1,1)     = ALAMDA + 2.0d0*AMU
+      CMATRIX(2,2)     = ALAMDA + 2.0d0*AMU
+      CMATRIX(3,3)     = ALAMDA + 2.0d0*AMU
+      CMATRIX(1,2)     = ALAMDA
+      CMATRIX(1,3)     = ALAMDA
+      CMATRIX(2,3)     = ALAMDA
+      CMATRIX(2,1)     = ALAMDA
+      CMATRIX(3,1)     = ALAMDA
+      CMATRIX(3,2)     = ALAMDA
+      do i=4,ntens
+        CMATRIX(i,i)   = AMU
+      enddo
       
       !Compute viscous stress
       ! ------------------------------------
@@ -1039,15 +1051,12 @@
       w=dsin(1.4d0*phi)**2
       rc=(1.0d0-w)/(9.0d0-w)
       
-      s11  = Tcorrected(1,1)/tr_sig
-      s22  = Tcorrected(2,2)/tr_sig
-      s33  = Tcorrected(3,3)/tr_sig
+      s11  = Tcorrected(1,1)/tr_sig - 1.0d0/3.0d0
+      s22  = Tcorrected(2,2)/tr_sig - 1.0d0/3.0d0
+      s33  = Tcorrected(3,3)/tr_sig - 1.0d0/3.0d0
       s12  = Tcorrected(1,2)/tr_sig
       s13  = Tcorrected(1,3)/tr_sig
       s23  = Tcorrected(2,3)/tr_sig
-      s11  = s11-1.0d0/3.0d0
-      s22  = s22-1.0d0/3.0d0
-      s33  = s33-1.0d0/3.0d0
       
       norm = dsqrt(s11*s11+s22*s22+s33*s33+
      &        2.0d0*s12*s12+2.0d0*s23*s23+2.0d0*s13*s13)
