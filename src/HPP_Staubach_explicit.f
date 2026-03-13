@@ -21,6 +21,8 @@
 !> @brief according to https://www.bgu.ruhr-uni-bochum.de/bgu/mam/images/dissertationen/staubach__2022__heft_73_contributions_to_the_numerical_modelling_of_pile_installation_processes_and_high-cyclic_loading_of_soils_mit_db.pdf
 ! REVISION HISTORY
 !> @date 20.05.2018 - Initial version   
+!> @date 04.03.2026 - Updated and made considerably faster  
+!> @date 12.03.2026 - Corrected issue with check of void ratios
 !=======================================================================================================
       SUBROUTINE UMAT(STRESS,STATEV,DDSDDE,SSE,SPD,SCD,
      1 RPL,DDSDDT,DRPLDE,DRPLDT,
@@ -77,7 +79,7 @@
       
       !Viscosity
       ! ------------------------------------
-      logical            :: useVisco      = .true.
+      logical            :: useVisco      = .true. 
       integer, parameter :: npropsVisco   = 6
       real(8)            :: propsVisco(6)
       real(8)            :: stress_visc(ntens),CMATRIX(ntens,ntens)
@@ -85,7 +87,7 @@
       !Bounding projection
       ! ------------------------------------
       logical            :: useprojection = .true.
-      real(8), parameter :: pmin          = -0.01d0  !minimum allowed mean pressure
+      real(8), parameter :: pmin          = -0.01d0   !minimum allowed mean pressure; consistent with hypoStiff
       
       !Material properties (see Subroutine hypoStiff for detailed list)
       ! ------------------------------------
@@ -162,8 +164,8 @@
           stress1 = stress
       endif
 	  
-      if(statev(1)>1.05*props(6)) statev(1)=1.05*props(6)
-      if(statev(1)<0.95*props(5)) statev(1)=0.95*props(5)
+      if(Mstatev(1)>1.05*props(6)) Mstatev(1)=1.05*props(6)
+      if(Mstatev(1)<0.95*props(5)) Mstatev(1)=0.95*props(5)
       
       !Start Subincrement
 !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -204,17 +206,6 @@
       !Get full tensor notations
       ! ------------------------------------
       T = map2T(stress1,ntens)
-      
-      !Projection of vanishing stresses on the bounding surface
-      ! ------------------------------------
-      if (useprojection) then
-          
-          !Compute corrected stress state Tcorrected
-          ! ------------------------------------
-          call proj_bounding(-T,Tcorrected,props(1),pmin,i_proj) !uses mechanical sign convention
-          
-          T = -Tcorrected !back to geotechnical sign convention
-      endif
       
       !Get hypoplastic stiffness (Mstiff) using T
       ! ------------------------------------
@@ -292,7 +283,10 @@
           !Update void ratio
           ! ------------------------------------ 
           Mstatev(1)           = Mstatev(1)-(dstranU(1)+dstranU(2)
-     &                         + dstranU(3))*(1.0d0+statev(1))
+     &                         + dstranU(3))*(1.0d0+Mstatev(1))
+
+          if(Mstatev(1)>1.05*props(6)) Mstatev(1)=1.05*props(6)
+          if(Mstatev(1)<0.95*props(5)) Mstatev(1)=0.95*props(5)
 
           !Cumulative change in stress 
           ! ------------------------------------ 
@@ -423,6 +417,7 @@
       real(8),intent(out)   :: DDSDDE(ntens,ntens),doth(3,3)
 
       real(8),parameter     :: zero=0.0d0,onethird=0.3333333333333d0
+      real(8),parameter     :: pmin_hypo=3.0d0
       
       !Intern, needed for vHP hypoplastic model
       ! ------------------------------------
@@ -499,13 +494,13 @@
       ! ------------------------------------
       Stressp = tr(T)/3.0d0
       Tcorrected = T
-      if (Stressp < 3.0d0) then
-        Tcorrected(1,1)   = T(1,1)+3.0d0/3.0d0
-        Tcorrected(2,2)   = T(2,2)+3.0d0/3.0d0
-        Tcorrected(3,3)   = T(3,3)+3.0d0/3.0d0
-        Stressp           = 3.0d0
-      elseif(Stressp > 1d3) then
-        Stressp           = 1d3
+      if (Stressp < pmin_hypo) then
+        Tcorrected(1,1)   = T(1,1) + (pmin_hypo-Stressp)
+        Tcorrected(2,2)   = T(2,2) + (pmin_hypo-Stressp)
+        Tcorrected(3,3)   = T(3,3) + (pmin_hypo-Stressp)
+        Stressp           = pmin_hypo
+      elseif(Stressp > 1d4) then
+        Stressp           = 1d4
       endif
 
       !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
