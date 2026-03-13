@@ -21,7 +21,6 @@
 !> @brief according to https://www.bgu.ruhr-uni-bochum.de/bgu/mam/images/dissertationen/staubach__2022__heft_73_contributions_to_the_numerical_modelling_of_pile_installation_processes_and_high-cyclic_loading_of_soils_mit_db.pdf
 ! REVISION HISTORY
 !> @date 20.05.2018 - Initial version   
-!> @date 04.03.2026 - Updated and made considerably faster  
 !=======================================================================================================
       SUBROUTINE UMAT(STRESS,STATEV,DDSDDE,SSE,SPD,SCD,
      1 RPL,DDSDDT,DRPLDE,DRPLDT,
